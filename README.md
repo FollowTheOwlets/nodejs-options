@@ -1301,12 +1301,22 @@ const dataFilePath = path.join(__dirname, '../data/users.json');
 class UserRepository {
   static getAllUsers() {
     const rawData = fs.readFileSync(dataFilePath);
-    return JSON.parse(rawData);
+    let result = [];
+    try {
+      result = JSON.parse(rawData);
+    } catch (e) { }
+
+    return result;
   }
 
   static getUserById(userId) {
     const allUsers = this.getAllUsers();
     return allUsers.find(user => user.id === userId);
+  }
+
+  static getUserByEmail(email) {
+    const allUsers = this.getAllUsers();
+    return allUsers.find(user => user.email === email);
   }
 
   static addUser(user) {
@@ -1340,10 +1350,11 @@ class UserRepository {
 module.exports = UserRepository;
 ```
 
-Теперь `UserRepository` поддерживает следующие операции:
+`UserRepository` поддерживает следующие операции:
 
 - `getAllUsers`: Возвращает массив всех пользователей.
 - `getUserById`: Возвращает пользователя по идентификатору.
+- `getUserByEmail`: Возвращает пользователя по email.
 - `addUser`: Добавляет нового пользователя.
 - `updateUser`: Обновляет информацию о пользователе по идентификатору.
 - `deleteUser`: Удаляет пользователя по идентификатору.
@@ -1391,6 +1402,10 @@ class UserService {
     return UserRepository.getUserById(userId);
   }
 
+  static getUserByEmail(email) {
+    return UserRepository.getUserByEmail(email);
+  }
+
   static addUser(userData) {
     // Внутренняя логика, например, валидация данных
     if (!userData.username || !userData.email) {
@@ -1421,7 +1436,7 @@ class UserService {
   }
 
   // Дополнительные методы с внутренней логикой
-  static findUsersByEmailDomain(domain) {
+  static findUsersByEmail(domain) {
     const allUsers = UserRepository.getAllUsers();
     return allUsers.filter(user => user.email.endsWith(`@${domain}`));
   }
@@ -1494,15 +1509,12 @@ const bcrypt = require('bcrypt');
 
 router.use(express.json());
 
-// Пример секретного ключа для подписи JWT
-const secretKey = process.env.SECRET_KEY;
-
 // Пример middleware для проверки наличия JWT в заголовке Authorization
 const authenticateToken = (req, res, next) => {
   const token = req.header('Authorization');
   if (!token) return res.sendStatus(401);
 
-  jwt.verify(token, secretKey, (err, user) => {
+  jwt.verify(token, process.env.SECRET_KEY, (err, user) => {
     if (err) return res.sendStatus(403);
     req.user = user;
     next();
@@ -1533,7 +1545,7 @@ router.post('/register', async (req, res) => {
     const newUser = UserService.addUser({ username, email, password: hashedPassword });
 
     // Создание JWT
-    const token = jwt.sign({ id: newUser.id, username: newUser.username }, secretKey);
+    const token = jwt.sign({ id: newUser.id, username: newUser.username }, process.env.SECRET_KEY);
 
     res.json({ user: newUser, token });
   } catch (error) {
@@ -1562,7 +1574,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Создание JWT
-    const token = jwt.sign({ id: user.id, username: user.username }, secretKey);
+    const token = jwt.sign({ id: user.id, username: user.username }, process.env.SECRET_KEY);
 
     res.json({ user, token });
   } catch (error) {
@@ -1664,6 +1676,7 @@ module.exports = router;
 // app.js
 const express = require('express');
 const userRoutes = require('./routes/userRoutes');
+require('dotenv').config(); // Загрузка переменных среды
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -1674,7 +1687,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api/users', userRoutes);
+app.use('/api', userRoutes);
 
 // Обработка ошибок 404
 app.use((req, res, next) => {
