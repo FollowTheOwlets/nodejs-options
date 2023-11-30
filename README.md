@@ -14,6 +14,7 @@
 - [Работа с WebSocket](#12-работа-с-websocket)
 - [Тестирование](#13-тестирование-express-приложений)
 - [Fetch и клиент-серверное взаимодействие](#14-fetch-на-клиенте-и-настройка-cors)
+- [MVC](#mvc)
 
 
 ## 1. Введение
@@ -1237,3 +1238,536 @@ app.use(cors(corsOptions));
 ```
 
 Это позволит только `https://allowed-domain.com` делать запросы к вашему серверу.
+
+
+## MVC
+MVC (Model-View-Controller) — это шаблон проектирования, который используется для построения структуры веб-приложений.
+
+- **Модель (Model)**: Отвечает за данные и бизнес-логику. В данном примере, модель представлена классом `User`, который описывает сущность пользователя.
+
+- **Представление (View)**: В контексте Express, представление обычно генерируется с использованием шаблонизаторов, но в этом примере мы ограничимся RESTful API, и представлением будут JSON-ответы.
+
+- **Контроллер (Controller)**: Принимает запросы от клиента, взаимодействует с моделью для получения/изменения данных и возвращает результат клиенту. В этом примере, контроллер `userController` обрабатывает запросы для пользователей.
+
+- **Сервис (Service)**: Предоставляет слой абстракции для бизнес-логики, чтобы контроллеры оставались тонкими. Здесь `userService` предоставляет методы для взаимодействия с данными пользователей.
+
+- **Репозиторий (Repository)**: Отвечает за взаимодействие с данными. Здесь `userRepository` работает с файловой системой для хранения данных о пользователях.
+
+Важно отметить, что структура и организация зависят от конкретных требований проекта, и приведенный пример можно адаптировать под нужды вашего приложения.
+
+### 1. Создание структуры проекта:
+
+```plaintext
+/project
+  /controllers
+    userController.js
+  /models
+    user.js
+  /routes
+    userRoutes.js
+  /services
+    userService.js
+  /repositories
+    userRepository.js
+  server.js
+  package.json
+  .env
+```
+
+### 2. Реализация модели (models/user.js):
+
+```javascript
+// models/user.js
+class User {
+  constructor(id, username, email) {
+    this.id = id;
+    this.username = username;
+    this.email = email;
+  }
+}
+
+module.exports = User;
+```
+
+### 3. Реализация репозитория (repositories/userRepository.js):
+
+```javascript
+// repositories/userRepository.js
+const fs = require('fs');
+const path = require('path');
+
+const dataFilePath = path.join(__dirname, '../data/users.json');
+
+class UserRepository {
+  static getAllUsers() {
+    const rawData = fs.readFileSync(dataFilePath);
+    return JSON.parse(rawData);
+  }
+
+  static getUserById(userId) {
+    const allUsers = this.getAllUsers();
+    return allUsers.find(user => user.id === userId);
+  }
+
+  static addUser(user) {
+    const allUsers = this.getAllUsers();
+    user.id = allUsers.length > 0 ? Math.max(...allUsers.map(u => u.id)) + 1 : 1;
+    allUsers.push(user);
+    fs.writeFileSync(dataFilePath, JSON.stringify(allUsers, null, 2));
+    return user;
+  }
+
+  static updateUser(userId, updatedUserData) {
+    const allUsers = this.getAllUsers();
+    const userIndex = allUsers.findIndex(user => user.id === userId);
+
+    if (userIndex !== -1) {
+      allUsers[userIndex] = { ...allUsers[userIndex], ...updatedUserData };
+      fs.writeFileSync(dataFilePath, JSON.stringify(allUsers, null, 2));
+      return allUsers[userIndex];
+    }
+
+    return null;
+  }
+
+  static deleteUser(userId) {
+    const allUsers = this.getAllUsers();
+    const updatedUsers = allUsers.filter(user => user.id !== userId);
+    fs.writeFileSync(dataFilePath, JSON.stringify(updatedUsers, null, 2));
+  }
+}
+
+module.exports = UserRepository;
+```
+
+Теперь `UserRepository` поддерживает следующие операции:
+
+- `getAllUsers`: Возвращает массив всех пользователей.
+- `getUserById`: Возвращает пользователя по идентификатору.
+- `addUser`: Добавляет нового пользователя.
+- `updateUser`: Обновляет информацию о пользователе по идентификатору.
+- `deleteUser`: Удаляет пользователя по идентификатору.
+
+Пример использования:
+
+```javascript
+// Пример использования UserRepository
+const UserRepository = require('../repositories/userRepository');
+
+// Получение всех пользователей
+const allUsers = UserRepository.getAllUsers();
+console.log(allUsers);
+
+// Получение пользователя по идентификатору
+const userById = UserRepository.getUserById(1);
+console.log(userById);
+
+// Добавление нового пользователя
+const newUser = UserRepository.addUser({ username: 'john_doe', email: 'john@example.com' });
+console.log(newUser);
+
+// Обновление информации о пользователе
+const updatedUser = UserRepository.updateUser(1, { email: 'new_email@example.com' });
+console.log(updatedUser);
+
+// Удаление пользователя
+UserRepository.deleteUser(1);
+```
+
+Эти методы позволяют вам взаимодействовать с данными о пользователях, используя CRUD операции. Помните, что в реальном приложении, особенно в production, вы, вероятно, захотите добавить больше обработки ошибок и валидации данных.
+
+### 4. Реализация сервиса (services/userService.js):
+
+```javascript
+// services/userService.js
+const UserRepository = require('../repositories/userRepository');
+
+class UserService {
+  static getAllUsers() {
+    return UserRepository.getAllUsers();
+  }
+
+  static getUserById(userId) {
+    return UserRepository.getUserById(userId);
+  }
+
+  static addUser(userData) {
+    // Внутренняя логика, например, валидация данных
+    if (!userData.username || !userData.email) {
+      throw new Error('Username and email are required');
+    }
+
+    return UserRepository.addUser(userData);
+  }
+
+  static updateUser(userId, updatedUserData) {
+    // Внутренняя логика, например, проверка наличия пользователя
+    const existingUser = UserRepository.getUserById(userId);
+    if (!existingUser) {
+      throw new Error('User not found');
+    }
+
+    return UserRepository.updateUser(userId, updatedUserData);
+  }
+
+  static deleteUser(userId) {
+    // Внутренняя логика, например, проверка наличия пользователя перед удалением
+    const existingUser = UserRepository.getUserById(userId);
+    if (!existingUser) {
+      throw new Error('User not found');
+    }
+
+    UserRepository.deleteUser(userId);
+  }
+
+  // Дополнительные методы с внутренней логикой
+  static findUsersByEmailDomain(domain) {
+    const allUsers = UserRepository.getAllUsers();
+    return allUsers.filter(user => user.email.endsWith(`@${domain}`));
+  }
+
+  static generateRandomUsername() {
+    const randomSuffix = Math.floor(Math.random() * 1000);
+    return `user_${randomSuffix}`;
+  }
+}
+
+module.exports = UserService;
+```
+
+Пример использования:
+
+```javascript
+// Пример использования UserService
+const UserService = require('../services/userService');
+
+// Получение всех пользователей
+const allUsers = UserService.getAllUsers();
+console.log(allUsers);
+
+// Получение пользователя по идентификатору
+const userById = UserService.getUserById(1);
+console.log(userById);
+
+// Добавление нового пользователя
+try {
+  const newUser = UserService.addUser({ username: 'john_doe', email: 'john@example.com' });
+  console.log(newUser);
+} catch (error) {
+  console.error(error.message);
+}
+
+// Обновление информации о пользователе
+try {
+  const updatedUser = UserService.updateUser(1, { email: 'new_email@example.com' });
+  console.log(updatedUser);
+} catch (error) {
+  console.error(error.message);
+}
+
+// Удаление пользователя
+try {
+  UserService.deleteUser(1);
+} catch (error) {
+  console.error(error.message);
+}
+
+// Дополнительные методы
+const usersWithDomain = UserService.findUsersByEmailDomain('example.com');
+console.log(usersWithDomain);
+
+const randomUsername = UserService.generateRandomUsername();
+console.log(randomUsername);
+```
+
+Эти методы демонстрируют, как вы можете расширить функциональность `UserService`, добавляя внутреннюю логику и дополнительные операции.
+
+### 5. Реализация контроллера (controllers/userController.js):
+
+```javascript
+// controllers/userController.js
+const express = require('express');
+const router = express.Router();
+const UserService = require('../services/userService');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+
+router.use(express.json());
+
+// Пример секретного ключа для подписи JWT
+const secretKey = process.env.SECRET_KEY;
+
+// Пример middleware для проверки наличия JWT в заголовке Authorization
+const authenticateToken = (req, res, next) => {
+  const token = req.header('Authorization');
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, secretKey, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
+
+// Регистрация пользователя и выдача JWT
+router.post('/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Валидация данных
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // Проверка на уникальность email
+    const existingUser = UserService.getUserByEmail(email);
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email is already registered' });
+    }
+
+    // Хеширование пароля
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Создание нового пользователя
+    const newUser = UserService.addUser({ username, email, password: hashedPassword });
+
+    // Создание JWT
+    const token = jwt.sign({ id: newUser.id, username: newUser.username }, secretKey);
+
+    res.json({ user: newUser, token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Авторизация пользователя и выдача JWT
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Поиск пользователя по email
+    const user = UserService.getUserByEmail(email);
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Проверка пароля
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Создание JWT
+    const token = jwt.sign({ id: user.id, username: user.username }, secretKey);
+
+    res.json({ user, token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.get('/', authenticateToken, (req, res) => {
+  const users = UserService.getAllUsers();
+  res.json(users);
+});
+
+router.post('/', (req, res) => {
+  const { username, email } = req.body;
+
+  try {
+    const newUser = UserService.addUser({ username, email });
+    res.json(newUser);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.get('/:userId', authenticateToken, (req, res) => {
+  const userId = parseInt(req.params.userId);
+  const user = UserService.getUserById(userId);
+
+  if (user) {
+    res.json(user);
+  } else {
+    res.status(404).json({ error: 'User not found' });
+  }
+});
+
+router.put('/:userId', authenticateToken, (req, res) => {
+  const userId = parseInt(req.params.userId);
+  const { email } = req.body;
+
+  try {
+    const updatedUser = UserService.updateUser(userId, { email });
+    if (updatedUser) {
+      res.json(updatedUser);
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.delete('/:userId', authenticateToken, (req, res) => {
+  const userId = parseInt(req.params.userId);
+
+  try {
+    UserService.deleteUser(userId);
+    res.sendStatus(204);
+  } catch (error) {
+    res.status(404).json({ error: 'User not found' });
+  }
+});
+
+module.exports = router;
+```
+
+Этот `userController`:
+
+- Использует `express.json()` для обработки JSON-тела запроса.
+- Включает middleware `authenticateToken`, который проверяет наличие и валидность JWT в заголовке `Authorization`.
+- Использует простое хеширование пароля с помощью `bcrypt`` и сохранение данных в памяти.
+
+Пример использования JWT:
+
+```javascript
+// Пример создания JWT при успешной аутентификации
+const user = { username: 'john_doe', id: 1 };
+const token = jwt.sign(user, secretKey);
+```
+
+Теперь каждый запрос, который использует middleware `authenticateToken`, должен предоставлять в заголовке `Authorization` валидный JWT.
+Это пример, и в реальном приложении вам, возможно, захочется использовать более сложные механизмы аутентификации и управления JWT.
+
+### 6. Роутинг (routes/userRoutes.js):
+
+```javascript
+// routes/userRoutes.js
+const express = require('express');
+const router = express.Router();
+const userController = require('../controllers/userController');
+
+router.use('/users', userController);
+
+module.exports = router;
+```
+
+### 7. Интеграция роутов в приложение (server.js):
+
+```javascript
+// app.js
+const express = require('express');
+const userRoutes = require('./routes/userRoutes');
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Пример middleware для логгирования запросов
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
+app.use('/api/users', userRoutes);
+
+// Обработка ошибок 404
+app.use((req, res, next) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
+// Обработка ошибок 500
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+```
+
+Обратите внимание на следующее в `app.js`:
+
+- Добавили простой middleware для логгирования запросов.
+- Подключили роуты для пользователей с префиксом `/api/users`.
+- Добавили middleware для обработки ошибок 404 и 500.
+
+Теперь вы можете запустить приложение с помощью `node app.js` и оно будет слушать запросы на `http://localhost:3000`.
+
+В этом примере у нас есть базовая структура Express-приложения с обработкой запросов пользователей, аутентификацией с использованием JWT, обработкой ошибок и middleware для логгирования запросов. Эту структуру можно дополнять и расширять в зависимости от конкретных требований вашего приложения.
+
+### 8. Переменные среды
+
+Файл `.env` (Environment) — это файл конфигурации, который содержит переменные среды вашего приложения. В контексте Express.js, файл `.env` часто используется для хранения конфиденциальной информации, такой как секретные ключи, URL базы данных и другие параметры, которые не должны попасть в репозиторий.
+
+Вот как это работает:
+
+#### Шаг 1: Установка пакета `dotenv`
+
+```bash
+npm install dotenv
+```
+
+#### Шаг 2: Создание файла `.env`
+
+В корне вашего проекта создайте файл с именем `.env` и добавьте в него переменные среды в формате `KEY=VALUE`. Пример:
+
+```plaintext
+PORT=3000
+DB_URL=mongodb://localhost:27017/mydatabase
+SECRET_KEY=mysecretkey
+```
+
+#### Шаг 3: Загрузка переменных среды в Express приложение
+
+```javascript
+// app.js
+const express = require('express');
+const userRoutes = require('./routes/userRoutes');
+require('dotenv').config(); // Загрузка переменных среды
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// ...
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+```
+
+Теперь переменные из файла `.env` будут доступны в приложении через `process.env`.
+
+#### Пример использования переменных среды в коде:
+
+```javascript
+// app.js
+const express = require('express');
+const userRoutes = require('./routes/userRoutes');
+require('dotenv').config();
+
+const app = express();
+const port = process.env.PORT || 3000;
+const secretKey = process.env.SECRET_KEY || 'mysecretkey';
+
+// ...
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+```
+
+#### Важные замечания:
+
+1. **Не добавляйте `.env` в репозиторий.** Этот файл должен быть включен в файл `.gitignore`, чтобы избежать случайного попадания конфиденциальной информации в репозиторий.
+2. **Не храните в `.env` секретные ключи или конфиденциальную информацию в открытом доступе.** Предоставляйте шаблон `.env.example` с образцами переменных, и оставляйте только необходимые значения в `.env`.
+3. **Перезапустите приложение после изменения `.env`.** Изменения в файле `.env` не вступают в силу, пока вы не перезапустите сервер.
+4. **Используйте `.env` только для переменных среды.** Не храните в `.env` какие-либо другие файлы или конфигурации.
+
+
