@@ -1,0 +1,51 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+h1 {
+    color: #333;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.material-icons {
+    font-size: 14px;
+}
+
+.btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn:has(.done) {
+    background-color: darkgreen;
+}
+
+.btn:has(.cls) {
+    background-color: white;
+    color: #333;
+}
+
+.btn-group-sm>.btn,
+.btn-sm {
+    padding: 0.5rem 0.5rem;
+    border-radius: 10rem;
+}
+
+.task {
+    max-width: 60%;
+}

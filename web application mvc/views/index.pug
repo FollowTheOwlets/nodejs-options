@@ -1,0 +1,35 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title To-Do List
+    link(rel="stylesheet", href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/icon?family=Material+Icons")
+    link(rel="stylesheet", href="/style.css")
+  body
+    .container.mt-5
+      .row
+        .col-md-6.offset-md-3
+          .card
+            .card-header
+              h1.text-center To-Do List
+            .card-body
+              form(action="/add" method="post" class="mb-3")
+                .input-group
+                  input(type="text" name="title" placeholder="Add a new task..." required class="form-control")
+                  .input-group-append
+                    button(type="submit" class="btn btn-primary") Add Task
+              ul.list-group
+                each task in tasks
+                  li.list-group-item.d-flex.align-items-center.py-2
+                    div( class=`task`) #{task.title}
+                    a.btn.btn-secondary.btn-sm.ml-auto(href=`/complete/${task.id}`)
+                        if (task.completed)
+                            i.material-icons.md-18.done done
+                        else
+                            i.material-icons.md-18.cls done
+                    a.btn.btn-warning.btn-sm.ml-2(href=`/edit/${task.id}`)
+                      i.material-icons.md-18 edit
+                    a.btn.btn-danger.btn-sm.ml-2(href=`/delete/${task.id}`)
+                      i.material-icons.md-18 delete
