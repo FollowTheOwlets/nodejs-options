@@ -1,0 +1,37 @@
+doctype html
+html
+  head
+    title GAGIS
+    script(src=`https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU&suggest_apikey=${suggestApiKey}` type="text/javascript")
+    script(src="https://kit.fontawesome.com/e779950260.js" crossorigin="anonymous")
+    link(rel="stylesheet", href="css/2gis.style.css")
+  body
+    #map
+    .menu 
+        .menu__container
+            .search
+                input
+                .btn
+                    i.fa-solid.fa-magnifying-glass
+                .results.hide
+            .btn.add.point 
+                i.fa-solid.fa-location-dot
+            .btn.add.polygon
+                i.fa-solid.fa-draw-polygon
+
+    script.
+      if (!window.ymaps) {
+        document.writeln('<script src="' +
+          'https://api-maps.yandex.ru/2.1/?' +
+          'lang=ru_RU' +
+          '&mode=debug' +
+          '&load=package.full' +
+          '&onload=mscDistance.Ymaps.ready' +
+          '&ns=ymaps' +
+          '&apikey=' +  '#{apiKey}' +
+          '&suggest_apikey' + '#{suggestApiKey}' +
+          '"><\/script>');
+        }
+    script(src="js/gagis.utils.js")
+    script(src="js/gagis.static.js")
+    script(src="js/gagis.init.js")

@@ -1,0 +1,143 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+:root {
+    --accent: #C14524;
+    --dark: #444;
+}
+
+body {
+    overflow: hidden;
+}
+
+#map {
+    width: 100vw;
+    height: 100vh;
+}
+
+.menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: max-content;
+    margin: 6px;
+}
+
+.menu__container {
+    background-color: var(--accent);
+    width: 100%;
+    border-radius: 3px;
+    padding: 6px;
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.search {
+    display: flex;
+    width: 100%;
+    position: relative;
+}
+
+input {
+    outline: none;
+    flex-grow: 1;
+    border: none;
+    background-color: white;
+    color: var(--dark);
+    padding: 3px 6px;
+    height: 24px;
+}
+
+textarea {
+    outline: none;
+    resize: none;
+    border: none;
+    background-color: white;
+    color: var(--dark);
+    padding: 3px 6px;
+    width: 100%;
+}
+
+.btn {
+    background-color: white;
+    color: var(--dark);
+    padding: 3px 8px;
+    height: 24px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity .4s;
+}
+
+.btn:hover {
+    opacity: .8;
+}
+
+.btn:active {
+    opacity: .6;
+}
+
+.btn.disable,
+input.disable {
+    opacity: 1 !important;
+    background-color: #00000044;
+}
+
+.btn i {
+    line-height: 16px;
+}
+
+.search .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.add {
+    position: relative;
+}
+
+ul {
+    list-style: none;
+}
+
+#menu {
+    position: fixed;
+    background-color: var(--accent);
+    padding: 6px;
+    border-radius: 3px;
+    color: white;
+}
+
+.results {
+    position: absolute;
+    min-height: 40px;
+    max-height: 400px;
+    width: 100%;
+    background-color: white;
+    top: 100%;
+    left: 0;
+}
+
+.results.hide{
+    display: none;
+}
+
+.result {
+    padding: 6px;
+    cursor: pointer;
+    transition: color .4s;
+    font-size: 16px;
+}
+
+.result:hover {
+    color: darkblue;
+}
