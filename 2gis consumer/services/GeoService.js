@@ -1,10 +1,20 @@
 const Datastore = require('nedb-promises');
+const fs = require('fs');
+const { convertFromJson } = require('../utils/utils.js');
 
 class GeoService {
-    static store = Datastore.create('./db/store_7.db');
+    static store = Datastore.create('./db/store.db');
+
+    static async init() {
+        const geoJsonContent = fs.readFileSync('./db/init.geojson', 'utf-8');
+        const geoJsonArray = JSON.parse(geoJsonContent);
+        for (const geoObject of geoJsonArray) {
+            GeoService.saveOne(convertFromJson(geoObject));
+        }
+    }
 
     static async saveOne(data) {
-        const check = await GeoService.store.findOne({ _id: data._id });
+        const check = await GeoService.store.findOne({ coordinates: data.coordinates });
         if (!check)
             return GeoService.store.insert(data);
         else

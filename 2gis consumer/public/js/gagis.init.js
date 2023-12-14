@@ -333,6 +333,7 @@ const init = () => {
             .map(e => {
                 const block = create('div').withClass('result').withInner(e.properties.get('iconCaption'));
                 block.addEventListener('click', () => {
+                    console.log(e.geometry.getType())
                     if (e.geometry.getType() === 'Polygon') {
                         let coords = [0, 0];
                         for (let point of e.geometry.getCoordinates()[0]) {
@@ -357,7 +358,7 @@ const init = () => {
             });
     });
 
-    searchInput.addEventListener('blur', () => searchResults.hide());
+    searchInput.addEventListener('blur', () => setTimeout(() => searchResults.hide(), 300));
 }
 
 

@@ -4,6 +4,8 @@ const GeoService = require('../services/GeoService');
 const geoController = express.Router();
 
 geoController.use(express.json());
+GeoService.init();
+
 
 geoController.post('/save', (req, res) => {
     const { data } = req.body;
